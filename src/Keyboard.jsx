@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { isKeyDisabled } from './keyboardLogic'
 
 const ROW1 = 'abcdefghijklm'.split('')
 const ROW2 = 'nopqrstuvwxyz'.split('')
@@ -63,14 +64,13 @@ export default function Keyboard({ availableLetters, onKeyPress, disabled }) {
     } else if (key === 'CLEAR') {
       onKeyPress('CLEAR')
     } else {
-      if (availableLetters[key] === false) return
+      if (isKeyDisabled(key, availableLetters)) return
       onKeyPress(key)
     }
   }
 
   const renderKey = (key, index) => {
-    const isLetter = key.length === 1
-    const isDisabled = isLetter && availableLetters[key] === false
+    const isDisabled = isKeyDisabled(key, availableLetters)
     const isFocused = index === focusIndex
     const isSpecial = SPECIAL_KEYS.includes(key)
 

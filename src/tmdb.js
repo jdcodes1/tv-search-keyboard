@@ -1,3 +1,5 @@
+import { titleMatchesQuery } from './keyboardLogic'
+
 const API_KEY = import.meta.env.VITE_TMDB_API_KEY
 const BASE_URL = 'https://api.themoviedb.org/3'
 const cache = new Map()
@@ -40,17 +42,6 @@ function mockSearch(query) {
       title,
       poster_path: null,
     }))
-}
-
-function titleMatchesQuery(title, query) {
-  const t = title.toLowerCase()
-  const q = query.toLowerCase()
-  // Check if query matches starting from any word boundary in the title
-  if (t.startsWith(q)) return true
-  for (let i = 1; i < t.length; i++) {
-    if (t[i - 1] === ' ' && t.substring(i).startsWith(q)) return true
-  }
-  return false
 }
 
 export async function searchMovies(query) {
