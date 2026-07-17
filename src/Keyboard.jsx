@@ -21,39 +21,60 @@ export default function Keyboard({ availableLetters, onKeyPress, disabled }) {
     return ROW1.length + ROW2.length + Math.max(0, Math.min(col, SPECIAL_KEYS.length - 1))
   }
 
-  const handleArrowNav = useCallback((e) => {
-    const { row, col } = getRowForIndex(focusIndex)
-    let newIndex = focusIndex
+  // A key is navigable if it's a special key or an available letter.
+  // Disabled (dead-end) letters are skipped over during d-pad navigation.
+  const isEnabled = (idx) => !isKeyDisabled(ALL_KEYS[idx], availableLetters)
 
-    switch (e.key) {
-      case 'ArrowRight':
-        e.preventDefault()
-        newIndex = Math.min(focusIndex + 1, ALL_KEYS.length - 1)
-        break
-      case 'ArrowLeft':
-        e.preventDefault()
-        newIndex = Math.max(focusIndex - 1, 0)
-        break
-      case 'ArrowDown':
-        e.preventDefault()
-        if (row < 2) newIndex = getIndexForPos(row + 1, col)
-        break
-      case 'ArrowUp':
-        e.preventDefault()
-        if (row > 0) newIndex = getIndexForPos(row - 1, col)
-        break
-      case 'Enter':
-        e.preventDefault()
-        handleKeyClick(ALL_KEYS[focusIndex])
-        return
+  // Single-cell move in a direction, matching the grid layout.
+  const rawStep = (idx, key) => {
+    const { row, col } = getRowForIndex(idx)
+    switch (key) {
+      case 'ArrowRight': return Math.min(idx + 1, ALL_KEYS.length - 1)
+      case 'ArrowLeft':  return Math.max(idx - 1, 0)
+      case 'ArrowDown':  return row < 2 ? getIndexForPos(row + 1, col) : idx
+      case 'ArrowUp':    return row > 0 ? getIndexForPos(row - 1, col) : idx
+      default:           return idx
     }
-    setFocusIndex(newIndex)
-  }, [focusIndex])
+  }
+
+  // Keep stepping in the same direction until landing on an enabled key.
+  // If the direction dead-ends into only-disabled keys, stay put.
+  const slide = (idx, key) => {
+    let cur = idx
+    let next = rawStep(cur, key)
+    while (!isEnabled(next) && next !== cur) {
+      cur = next
+      next = rawStep(cur, key)
+    }
+    return isEnabled(next) ? next : idx
+  }
+
+  const handleArrowNav = useCallback((e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      handleKeyClick(ALL_KEYS[focusIndex])
+      return
+    }
+    if (['ArrowRight', 'ArrowLeft', 'ArrowDown', 'ArrowUp'].includes(e.key)) {
+      e.preventDefault()
+      setFocusIndex(slide(focusIndex, e.key))
+    }
+  }, [focusIndex, availableLetters])
 
   useEffect(() => {
     window.addEventListener('keydown', handleArrowNav)
     return () => window.removeEventListener('keydown', handleArrowNav)
   }, [handleArrowNav])
+
+  // If the focused key gets disabled (availability changed after a keystroke),
+  // slide focus to the nearest enabled key so the cursor never rests on a dead-end.
+  useEffect(() => {
+    if (!isEnabled(focusIndex)) {
+      const right = slide(focusIndex, 'ArrowRight')
+      setFocusIndex(right !== focusIndex ? right : slide(focusIndex, 'ArrowLeft'))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableLetters])
 
   const handleKeyClick = (key) => {
     if (disabled) return
