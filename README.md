@@ -13,6 +13,29 @@ As you type, the app checks whether appending each letter A-Z to your current qu
 - All queries cached — explored paths resolve instantly
 - Works without an API key (mock data fallback)
 
+## Speed
+
+D-pad navigation **skips over disabled letters** — pressing an arrow lands on the
+next *enabled* key instead of stepping cell-by-cell. Since typing on a TV means
+moving a cursor around the grid, dropping dead-end letters cuts a lot of travel.
+
+Benchmark: shortest-path d-pad presses (arrows + selects) to type every title in
+the mock catalog, cursor starting at `A`.
+
+| Keyboard                         | Presses / search | vs. normal   |
+| -------------------------------- | ---------------- | ------------ |
+| Normal (all letters always live) | 44.0             | —            |
+| Disable-only (no skip)           | 44.0             | 0% faster    |
+| **Skip disabled (this app)**     | **22.9**         | **~48% fewer** |
+
+Disabling dead-ends *without* skipping saves nothing — the cursor still walks
+past them. The win comes entirely from skipping. Reproduce with:
+
+```bash
+node bench/dpad_bench.mjs   # the benchmark
+node bench/nav.checks.mjs   # navigation unit checks
+```
+
 ## Setup
 
 ```bash
